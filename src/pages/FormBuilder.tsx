@@ -38,6 +38,7 @@ export default function FormBuilder() {
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -113,6 +114,17 @@ export default function FormBuilder() {
       options: ['dropdown', 'single-choice', 'multiple-choice', 'checkbox'].includes(type) ? ['Option 1'] : undefined,
     };
     setFields([...fields, newField]);
+    
+    // Scroll to the new field after a short delay to allow rendering
+    setTimeout(() => {
+      const element = document.getElementById(`field-${newField.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a highlight effect
+        element.classList.add('ring-2', 'ring-brand-accent');
+        setTimeout(() => element.classList.remove('ring-2', 'ring-brand-accent'), 2000);
+      }
+    }, 100);
   };
 
   const removeField = (fieldId: string) => {
@@ -215,25 +227,89 @@ export default function FormBuilder() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12">
+        <div className="max-w-4xl mx-auto">
           <div className="space-y-8">
+            {/* Desktop Field Toolbar */}
+            <div className="hidden md:flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-brand-accent font-bold text-[10px] uppercase tracking-widest shrink-0 mr-2">
+                <div className="w-4 h-px bg-brand-accent" />
+                Add Field
+              </div>
+              {(Object.keys(FIELD_ICONS) as FieldType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => addField(type)}
+                  className="flex items-center gap-3 px-4 py-2.5 glass rounded-xl hover:bg-brand-accent hover:text-brand-bg transition-all group whitespace-nowrap"
+                >
+                  <div className="text-white/40 group-hover:text-brand-bg transition-colors scale-90">
+                    {FIELD_ICONS[type]}
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{type.replace('-', ' ')}</span>
+                </button>
+              ))}
+              
+              <div className="w-px h-8 bg-white/10 mx-2" />
+              
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-brand-accent/10 border border-brand-accent/20 hover:bg-brand-accent hover:text-brand-bg transition-all group whitespace-nowrap backdrop-blur-md"
+              >
+                <Settings2 size={18} className="text-brand-accent group-hover:text-brand-bg transition-colors" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-accent group-hover:text-brand-bg transition-colors">Settings</span>
+              </button>
+            </div>
+
             {/* Header Editor */}
-            <div className="p-8 md:p-12 glass rounded-[2.5rem] relative overflow-hidden">
+            <div className="p-8 md:p-12 glass rounded-[2.5rem] relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-brand-accent/20" />
-              <div className="space-y-6">
-                <input
-                  type="text"
-                  placeholder="Form Title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-transparent text-4xl md:text-5xl font-display font-bold tracking-tight focus:outline-none placeholder:text-white/5"
-                />
-                <textarea
-                  placeholder="Enter a description for your respondents..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-transparent text-white/40 text-lg md:text-xl focus:outline-none resize-none h-24 placeholder:text-white/5 leading-relaxed"
-                />
+              
+              {/* Header Image Background */}
+              {headerImage && (
+                <div className="absolute inset-0 z-0">
+                  <img src={headerImage} alt="Header" className="w-full h-full object-cover opacity-20" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/80 to-brand-bg" />
+                </div>
+              )}
+
+              <div className="relative z-10 space-y-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-6">
+                    <input
+                      type="text"
+                      placeholder="Form Title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full bg-transparent text-4xl md:text-5xl font-display font-bold tracking-tight focus:outline-none placeholder:text-white/5"
+                    />
+                    <textarea
+                      placeholder="Enter a description for your respondents..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full bg-transparent text-white/40 text-lg md:text-xl focus:outline-none resize-none h-24 placeholder:text-white/5 leading-relaxed"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <div className="relative group/image">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleHeaderImageUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      />
+                      <button className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white/20 hover:text-brand-accent hover:bg-brand-accent/10 transition-all">
+                        <ImageIcon size={20} />
+                      </button>
+                    </div>
+                    
+                    <button 
+                      onClick={() => setSettingsOpen(true)}
+                      className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white/20 hover:text-brand-accent hover:bg-brand-accent/10 transition-all md:hidden"
+                    >
+                      <Settings2 size={20} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -242,10 +318,11 @@ export default function FormBuilder() {
               {fields.map((field, index) => (
                 <Reorder.Item
                   key={field.id}
+                  id={`field-${field.id}`}
                   value={field}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="glass rounded-[2rem] group relative overflow-hidden"
+                  className="glass rounded-[2rem] group relative overflow-hidden transition-all duration-300"
                 >
                   <div className="flex flex-col md:flex-row items-stretch">
                     <div className="w-full md:w-12 border-b md:border-b-0 md:border-r border-white/5 flex md:flex-col items-center justify-between md:justify-start p-4 md:py-8 gap-4 bg-white/[0.01]">
@@ -378,122 +455,97 @@ export default function FormBuilder() {
               <div className="py-32 text-center glass rounded-[3rem]">
                 <Layout className="mx-auto text-white/5 mb-6" size={64} />
                 <h3 className="text-2xl font-bold text-white/20">No fields added yet</h3>
-                <p className="text-white/10 text-sm mt-2">Select a field type from the sidebar to start building.</p>
+                <p className="text-white/10 text-sm mt-2">Select a field type from the toolbar to start building.</p>
               </div>
             )}
-          </div>
-
-          {/* Sidebar Tools */}
-          <div className="space-y-8">
-            {/* Form Settings */}
-            <div className="glass p-8 rounded-[2.5rem] space-y-8">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-brand-accent flex items-center gap-3">
-                <div className="w-4 h-px bg-brand-accent" />
-                Settings
-              </h3>
-              
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-white/20">Header Image</label>
-                  <div className="relative group">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleHeaderImageUpload}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="w-full aspect-video glass rounded-2xl flex flex-col items-center justify-center gap-4 group-hover:bg-white/[0.05] transition-all overflow-hidden relative">
-                      {headerImage ? (
-                        <>
-                          <img src={headerImage} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" referrerPolicy="no-referrer" />
-                          <div className="relative z-10 flex flex-col items-center gap-2">
-                            <Camera size={32} className="text-white" />
-                            <span className="text-white font-bold uppercase text-[10px] tracking-widest bg-brand-bg/80 px-3 py-1 rounded-lg">Change Image</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Camera size={32} className="text-white/10" />
-                          <span className="text-white/20 font-bold uppercase text-[10px] tracking-widest">Upload Header</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-white/20">Success Message</label>
-                  <textarea
-                    placeholder="Enter a message to show after submission..."
-                    value={successMessage}
-                    onChange={(e) => setSuccessMessage(e.target.value)}
-                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-sm focus:outline-none focus:border-brand-accent/30 h-40 resize-none placeholder:text-white/5 leading-relaxed"
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-white/5 space-y-4">
-                  <div className="flex items-center justify-between p-6 glass rounded-2xl">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-bold uppercase tracking-widest text-white/20">Status</label>
-                      <p className={`text-xs font-bold uppercase tracking-widest ${isOpen ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {isOpen ? 'Accepting' : 'Closed'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setIsOpen(!isOpen)}
-                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none ${isOpen ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}
-                    >
-                      <div className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isOpen ? 'translate-x-8' : 'translate-x-2'}`} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-6 glass rounded-2xl">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-bold uppercase tracking-widest text-white/20">Limit Responses</label>
-                      <p className={`text-xs font-bold uppercase tracking-widest ${limitOneResponse ? 'text-brand-accent' : 'text-white/40'}`}>
-                        {limitOneResponse ? 'One per user' : 'Unlimited'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setLimitOneResponse(!limitOneResponse)}
-                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none ${limitOneResponse ? 'bg-brand-accent/20' : 'bg-white/10'}`}
-                    >
-                      <div className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${limitOneResponse ? 'translate-x-8' : 'translate-x-2'}`} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="glass p-8 rounded-[2.5rem] space-y-8 sticky top-12 hidden lg:block">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-brand-accent flex items-center gap-3">
-                <div className="w-4 h-px bg-brand-accent" />
-                Add Fields
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {(Object.keys(FIELD_ICONS) as FieldType[]).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => addField(type)}
-                    className="flex items-center justify-between w-full p-4 glass rounded-2xl hover:bg-brand-accent hover:text-brand-bg transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="text-white/20 group-hover:text-brand-bg transition-colors">
-                        {FIELD_ICONS[type]}
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{type.replace('-', ' ')}</span>
-                    </div>
-                    <Plus size={14} className="text-white/10 group-hover:text-brand-bg transition-colors" />
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {settingsOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSettingsOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-6"
+            >
+              <div className="bg-brand-bg border border-white/10 rounded-[2rem] p-8 w-full max-w-lg pointer-events-auto shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-brand-accent" />
+                
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-bold flex items-center gap-3">
+                    <Settings2 className="text-brand-accent" size={24} />
+                    Form Settings
+                  </h3>
+                  <button 
+                    onClick={() => setSettingsOpen(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Success Message</label>
+                    <textarea
+                      placeholder="Enter a message to show after submission..."
+                      value={successMessage}
+                      onChange={(e) => setSuccessMessage(e.target.value)}
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-sm focus:outline-none focus:border-brand-accent/30 h-32 resize-none placeholder:text-white/5 leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-5 glass rounded-2xl">
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Form Status</label>
+                        <p className={`text-sm font-bold ${isOpen ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {isOpen ? 'Accepting Responses' : 'Closed'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${isOpen ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}
+                      >
+                        <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${isOpen ? 'translate-x-7' : 'translate-x-2'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-5 glass rounded-2xl">
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Response Limit</label>
+                        <p className={`text-sm font-bold ${limitOneResponse ? 'text-brand-accent' : 'text-white/60'}`}>
+                          {limitOneResponse ? 'One response per user' : 'Unlimited responses'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setLimitOneResponse(!limitOneResponse)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${limitOneResponse ? 'bg-brand-accent/20' : 'bg-white/10'}`}
+                      >
+                        <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${limitOneResponse ? 'translate-x-7' : 'translate-x-2'}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Mobile Add Field FAB */}
-      <div className="fixed bottom-6 right-6 z-40 lg:hidden">
+      <div className="fixed bottom-6 right-6 z-40 md:hidden">
         <button
           onClick={() => setMobileMenuOpen(true)}
           className="w-14 h-14 bg-brand-accent text-brand-bg rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95"
@@ -511,14 +563,14 @@ export default function FormBuilder() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 md:hidden"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-brand-bg border-t border-white/10 rounded-t-[2rem] p-6 z-50 lg:hidden max-h-[80vh] overflow-y-auto"
+              className="fixed bottom-0 left-0 right-0 bg-brand-bg border-t border-white/10 rounded-t-[2rem] p-6 z-50 md:hidden max-h-[80vh] overflow-y-auto"
             >
               <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-8" />
               <h3 className="text-xl font-bold mb-6 px-2">Add Field</h3>
