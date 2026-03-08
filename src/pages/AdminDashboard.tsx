@@ -5,6 +5,7 @@ import { FormStructure } from '../types';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Edit3, BarChart2, ExternalLink, Copy, Check, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
 
 export default function AdminDashboard() {
@@ -178,7 +179,10 @@ export default function AdminDashboard() {
                     
                     <div>
                       <h3 className="text-2xl font-bold tracking-tight line-clamp-1">{form.title}</h3>
-                      <p className="text-white/40 text-sm line-clamp-2 mt-2 leading-relaxed">{form.description}</p>
+                      <div 
+                        className="text-white/40 text-sm line-clamp-2 mt-2 leading-relaxed prose prose-invert prose-p:text-white/40 prose-headings:text-white/80 prose-strong:text-white/80 prose-a:text-brand-accent"
+                        dangerouslySetInnerHTML={{ __html: form.description }}
+                      />
                     </div>
                   </div>
 

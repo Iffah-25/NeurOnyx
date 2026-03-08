@@ -99,7 +99,10 @@ export default function FormView() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center space-y-8 bg-brand-bg relative overflow-hidden">
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center space-y-8 relative overflow-hidden"
+      style={{ backgroundColor: '#000814' }}
+    >
       <div className="absolute inset-0 bg-brand-accent/5 blur-[100px] animate-pulse" />
       <div className="relative z-10 flex flex-col items-center gap-6">
         <Logo className="w-32 h-32" />
@@ -217,7 +220,14 @@ export default function FormView() {
   );
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div 
+      className={`min-h-screen relative overflow-hidden ${form.theme?.fontFamily || 'font-sans'}`}
+      style={{
+        backgroundColor: form.theme?.backgroundColor || '#000814',
+        '--color-brand-accent': form.theme?.accentColor || '#00d2ff',
+        '--color-brand-bg': form.theme?.backgroundColor || '#000814',
+      } as React.CSSProperties}
+    >
       {/* Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-accent/5 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-accent/5 blur-[120px] rounded-full" />
@@ -234,9 +244,10 @@ export default function FormView() {
               {form.title}
             </h1>
             {form.description && (
-              <p className="text-white/40 text-base md:text-xl max-w-2xl leading-relaxed">
-                {form.description}
-              </p>
+              <div 
+                className="text-white/40 text-base md:text-xl max-w-2xl leading-relaxed prose prose-invert prose-p:text-white/40 prose-headings:text-white/80 prose-strong:text-white/80 prose-a:text-brand-accent"
+                dangerouslySetInnerHTML={{ __html: form.description }}
+              />
             )}
           </div>
 

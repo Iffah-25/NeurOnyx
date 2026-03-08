@@ -32,6 +32,11 @@ export interface FormStructure {
   successMessage?: string;
   isOpen: boolean;
   limitOneResponse?: boolean;
+  theme?: {
+    fontFamily: string;
+    accentColor: string;
+    backgroundColor: string;
+  };
 }
 
 export interface FormResponse {

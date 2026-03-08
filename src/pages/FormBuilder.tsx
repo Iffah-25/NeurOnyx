@@ -8,9 +8,12 @@ import { motion, Reorder, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, GripVertical, Settings2, Save, X, 
   Type, Mail, Phone, ChevronDown, List, CheckSquare, AlignLeft, Upload, 
-  ChevronLeft, Layout, Image as ImageIcon, Camera, CircleDot
+  ChevronLeft, Layout, Image as ImageIcon, Camera, CircleDot, Palette,
+  Bold, Italic, List as ListIcon
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+
+import RichTextEditor from '../components/RichTextEditor';
 
 const FIELD_ICONS: Record<FieldType, any> = {
   text: <Type size={18} />,
@@ -39,6 +42,12 @@ export default function FormBuilder() {
   const [saving, setSaving] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [theme, setTheme] = useState({
+    fontFamily: 'font-sans',
+    accentColor: '#00d2ff',
+    backgroundColor: '#000814'
+  });
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -97,6 +106,9 @@ export default function FormBuilder() {
           setSuccessMessage(data.successMessage || '');
           setIsOpen(data.isOpen !== undefined ? data.isOpen : true);
           setLimitOneResponse(data.limitOneResponse || false);
+          if (data.theme) {
+            setTheme(data.theme);
+          }
         }
         setLoading(false);
       };
@@ -179,6 +191,7 @@ export default function FormBuilder() {
         successMessage,
         isOpen,
         limitOneResponse,
+        theme,
         updatedAt: Date.now(),
         slug: slug || uuidv4().slice(0, 8),
       });
@@ -204,7 +217,14 @@ export default function FormBuilder() {
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
-    <div className="min-h-screen pb-32">
+    <div 
+      className={`min-h-screen pb-32 ${theme.fontFamily}`}
+      style={{
+        backgroundColor: theme.backgroundColor,
+        '--color-brand-accent': theme.accentColor,
+        '--color-brand-bg': theme.backgroundColor,
+      } as React.CSSProperties}
+    >
       <div className="max-w-7xl mx-auto px-6 pt-12 space-y-12">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-12">
           <div className="space-y-4">
@@ -251,6 +271,14 @@ export default function FormBuilder() {
               <div className="w-px h-8 bg-white/10 mx-2" />
               
               <button
+                onClick={() => setThemeOpen(true)}
+                className="flex items-center gap-3 px-4 py-2.5 glass rounded-xl hover:bg-brand-accent hover:text-brand-bg transition-all group whitespace-nowrap"
+              >
+                <Palette size={18} className="text-white/40 group-hover:text-brand-bg transition-colors" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Theme</span>
+              </button>
+
+              <button
                 onClick={() => setSettingsOpen(true)}
                 className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-brand-accent/10 border border-brand-accent/20 hover:bg-brand-accent hover:text-brand-bg transition-all group whitespace-nowrap backdrop-blur-md"
               >
@@ -281,12 +309,13 @@ export default function FormBuilder() {
                       onChange={(e) => setTitle(e.target.value)}
                       className="w-full bg-transparent text-4xl md:text-5xl font-display font-bold tracking-tight focus:outline-none placeholder:text-white/5"
                     />
-                    <textarea
-                      placeholder="Enter a description for your respondents..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full bg-transparent text-white/40 text-lg md:text-xl focus:outline-none resize-none h-24 placeholder:text-white/5 leading-relaxed"
-                    />
+                    <div className="quill-dark">
+                      <RichTextEditor
+                        value={description}
+                        onChange={setDescription}
+                        placeholder="Enter a description for your respondents..."
+                      />
+                    </div>
                   </div>
                   
                   <div className="flex flex-col gap-2">
@@ -461,6 +490,98 @@ export default function FormBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Theme Settings Modal */}
+      <AnimatePresence>
+        {themeOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setThemeOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-6"
+            >
+              <div className="bg-brand-bg border border-white/10 rounded-[2rem] p-8 w-full max-w-lg pointer-events-auto shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-brand-accent" />
+                
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-bold flex items-center gap-3">
+                    <Palette className="text-brand-accent" size={24} />
+                    Theme Settings
+                  </h3>
+                  <button 
+                    onClick={() => setThemeOpen(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Font Family</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {['font-sans', 'font-serif', 'font-display'].map((font) => (
+                        <button
+                          key={font}
+                          onClick={() => setTheme({ ...theme, fontFamily: font })}
+                          className={`p-4 rounded-xl border transition-all ${theme.fontFamily === font ? 'bg-brand-accent/10 border-brand-accent text-brand-accent' : 'bg-white/[0.02] border-white/5 text-white/40 hover:bg-white/[0.05]'}`}
+                        >
+                          <span className={`text-lg ${font}`}>Aa</span>
+                          <span className="block text-[10px] uppercase tracking-widest mt-2">{font.replace('font-', '')}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Accent Color</label>
+                    <div className="grid grid-cols-5 gap-3">
+                      {['#00d2ff', '#ff0055', '#00ff9d', '#ffaa00', '#a855f7'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setTheme({ ...theme, accentColor: color })}
+                          className={`w-full aspect-square rounded-xl border transition-all relative group ${theme.accentColor === color ? 'border-white' : 'border-transparent'}`}
+                          style={{ backgroundColor: color }}
+                        >
+                          {theme.accentColor === color && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full shadow-sm" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Background Color</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {['#000814', '#0f172a', '#18181b'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setTheme({ ...theme, backgroundColor: color })}
+                          className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${theme.backgroundColor === color ? 'bg-white/10 border-brand-accent' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'}`}
+                        >
+                          <div className="w-8 h-8 rounded-full border border-white/10" style={{ backgroundColor: color }} />
+                          <span className="text-[10px] uppercase tracking-widest text-white/40">{color}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Settings Modal */}
       <AnimatePresence>

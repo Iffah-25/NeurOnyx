@@ -52,3 +52,54 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #003566;
 }
+
+/* Quill Dark Theme Overrides */
+.quill-dark .ql-toolbar {
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 8px 0 !important;
+}
+
+.quill-dark .ql-container {
+  border: none !important;
+  font-size: 1.125rem !important; /* text-lg */
+}
+
+.quill-dark .ql-editor {
+  padding: 16px 0 !important;
+  min-height: 100px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.quill-dark .ql-editor.ql-blank::before {
+  color: rgba(255, 255, 255, 0.05) !important;
+  font-style: normal !important;
+}
+
+.quill-dark .ql-stroke {
+  stroke: rgba(255, 255, 255, 0.4) !important;
+}
+
+.quill-dark .ql-fill {
+  fill: rgba(255, 255, 255, 0.4) !important;
+}
+
+.quill-dark .ql-picker {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.quill-dark button:hover .ql-stroke {
+  stroke: white !important;
+}
+
+.quill-dark button:hover .ql-fill {
+  fill: white !important;
+}
+
+.quill-dark .ql-active .ql-stroke {
+  stroke: var(--color-brand-accent) !important;
+}
+
+.quill-dark .ql-active .ql-fill {
+  fill: var(--color-brand-accent) !important;
+}
