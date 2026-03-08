@@ -293,7 +293,7 @@ export default function FormView() {
                     </select>
                     <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" size={20} />
                   </div>
-                ) : field.type === 'multiple-choice' ? (
+                ) : field.type === 'single-choice' || field.type === 'multiple-choice' ? (
                   <div className="grid grid-cols-1 gap-3">
                     {field.options?.map((opt, i) => (
                       <label key={i} className="flex items-center justify-between p-5 glass rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-all group/opt">

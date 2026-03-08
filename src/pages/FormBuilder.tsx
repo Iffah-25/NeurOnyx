@@ -4,11 +4,11 @@ import { doc, getDoc, setDoc, collection, addDoc, updateDoc } from 'firebase/fir
 import { db, auth } from '../lib/firebase';
 import { FormField, FormStructure, FieldType } from '../types';
 import { sanitizeForFirestore } from '../lib/utils';
-import { motion, Reorder } from 'motion/react';
+import { motion, Reorder, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, GripVertical, Settings2, Save, X, 
   Type, Mail, Phone, ChevronDown, List, CheckSquare, AlignLeft, Upload, 
-  ChevronLeft, Layout, Image as ImageIcon, Camera
+  ChevronLeft, Layout, Image as ImageIcon, Camera, CircleDot
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -17,6 +17,7 @@ const FIELD_ICONS: Record<FieldType, any> = {
   email: <Mail size={18} />,
   phone: <Phone size={18} />,
   dropdown: <ChevronDown size={18} />,
+  'single-choice': <CircleDot size={18} />,
   'multiple-choice': <List size={18} />,
   checkbox: <CheckSquare size={18} />,
   paragraph: <AlignLeft size={18} />,
@@ -36,6 +37,7 @@ export default function FormBuilder() {
   const [limitOneResponse, setLimitOneResponse] = useState(false);
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -108,7 +110,7 @@ export default function FormBuilder() {
       label: `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
       required: false,
       placeholder: '',
-      options: ['dropdown', 'multiple-choice', 'checkbox'].includes(type) ? ['Option 1'] : undefined,
+      options: ['dropdown', 'single-choice', 'multiple-choice', 'checkbox'].includes(type) ? ['Option 1'] : undefined,
     };
     setFields([...fields, newField]);
   };
@@ -463,7 +465,7 @@ export default function FormBuilder() {
               </div>
             </div>
 
-            <div className="glass p-8 rounded-[2.5rem] space-y-8 sticky top-12">
+            <div className="glass p-8 rounded-[2.5rem] space-y-8 sticky top-12 hidden lg:block">
               <h3 className="text-[10px] font-bold uppercase tracking-widest text-brand-accent flex items-center gap-3">
                 <div className="w-4 h-px bg-brand-accent" />
                 Add Fields
@@ -489,6 +491,58 @@ export default function FormBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Add Field FAB */}
+      <div className="fixed bottom-6 right-6 z-40 lg:hidden">
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="w-14 h-14 bg-brand-accent text-brand-bg rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95"
+        >
+          <Plus size={24} />
+        </button>
+      </div>
+
+      {/* Mobile Field Selection Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 bg-brand-bg border-t border-white/10 rounded-t-[2rem] p-6 z-50 lg:hidden max-h-[80vh] overflow-y-auto"
+            >
+              <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-8" />
+              <h3 className="text-xl font-bold mb-6 px-2">Add Field</h3>
+              <div className="grid grid-cols-2 gap-3 pb-8">
+                {(Object.keys(FIELD_ICONS) as FieldType[]).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      addField(type);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex flex-col items-center justify-center gap-3 p-6 glass rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all"
+                  >
+                    <div className="text-brand-accent">
+                      {FIELD_ICONS[type]}
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-center">{type.replace('-', ' ')}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

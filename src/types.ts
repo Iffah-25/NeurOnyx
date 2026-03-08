@@ -3,6 +3,7 @@ export type FieldType =
   | 'email' 
   | 'phone' 
   | 'dropdown' 
+  | 'single-choice'
   | 'multiple-choice' 
   | 'checkbox' 
   | 'paragraph' 
