@@ -35,25 +35,25 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid-pattern flex items-center justify-center p-6">
+    <div className="min-h-screen grid-pattern flex items-center justify-center p-4 sm:p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full glass p-12 relative overflow-hidden"
+        className="max-w-md w-full glass p-6 sm:p-8 md:p-12 relative overflow-hidden rounded-2xl sm:rounded-none"
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-brand-accent/20" />
         
-        <div className="text-center mb-12">
-          <Logo className="w-24 h-24 mx-auto mb-6" showText={true} />
-          <div className="flex items-center justify-center gap-3 text-brand-accent font-mono text-[10px] uppercase tracking-[0.3em] mb-2">
+        <div className="text-center mb-8 md:mb-12">
+          <Logo className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6" showText={true} />
+          <div className="flex items-center justify-center gap-3 text-brand-accent font-mono text-[8px] md:text-[10px] uppercase tracking-[0.3em] mb-2">
             <div className="w-4 h-px bg-brand-accent" />
             Security_Protocol_Active
           </div>
-          <h2 className="text-4xl font-display uppercase tracking-tight text-white">Admin_Access</h2>
-          <p className="text-white/20 font-serif italic text-sm mt-2">Enter credentials for neural uplink</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-display uppercase tracking-tight text-white">Admin_Access</h2>
+          <p className="text-white/20 font-serif italic text-xs md:text-sm mt-2">Enter credentials for neural uplink</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-8">
+        <form onSubmit={handleLogin} className="space-y-6 md:space-y-8">
           <div className="space-y-3">
             <label className="block font-mono text-[10px] uppercase tracking-widest text-white/20 ml-1">Identity_Token</label>
             <div className="relative">

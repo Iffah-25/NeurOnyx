@@ -7,8 +7,8 @@ interface LogoProps {
 
 export default function Logo({ className = "w-12 h-12", showText = false }: LogoProps) {
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <div className="relative w-full h-full flex items-center justify-center">
+    <div className={`flex flex-col items-center gap-2 ${className} ${showText ? '!h-auto' : ''}`}>
+      <div className={`relative w-full flex items-center justify-center ${showText ? 'aspect-square' : 'h-full'}`}>
         <img 
           src="https://neuronyx.aiktc.ac.in/neuronyx.png" 
           alt="NeurOnyx Logo" 
