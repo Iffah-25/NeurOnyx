@@ -1,0 +1,42 @@
+export type FieldType = 
+  | 'text' 
+  | 'email' 
+  | 'phone' 
+  | 'dropdown' 
+  | 'multiple-choice' 
+  | 'checkbox' 
+  | 'paragraph' 
+  | 'file'
+  | 'image';
+
+export interface FormField {
+  id: string;
+  type: FieldType;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[]; // For dropdown, multiple-choice, checkbox
+  imageUrl?: string; // For static image display (e.g. QR codes)
+}
+
+export interface FormStructure {
+  id: string;
+  title: string;
+  description: string;
+  fields: FormField[];
+  createdAt: number;
+  createdBy: string;
+  slug: string; // For unique shareable URL
+  headerImage?: string;
+  successMessage?: string;
+  isOpen: boolean;
+  limitOneResponse?: boolean;
+}
+
+export interface FormResponse {
+  id: string;
+  formId: string;
+  data: Record<string, any>;
+  submittedAt: number;
+  userEmail?: string;
+}

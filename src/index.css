@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  
+  --color-brand-bg: #000814;
+  --color-brand-accent: #00d2ff;
+  --color-brand-accent-dark: #0077b6;
+}
+
+@layer base {
+  body {
+    @apply font-sans antialiased bg-brand-bg text-white selection:bg-brand-accent selection:text-brand-bg;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08];
+  }
+  
+  .glass-hover {
+    @apply hover:bg-white/[0.06] hover:border-white/[0.15] transition-all duration-300;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/40;
+  }
+
+  .accent-glow {
+    box-shadow: 0 0 40px -10px rgba(0, 210, 255, 0.3);
+  }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000814;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #001d3d;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #003566;
+}
