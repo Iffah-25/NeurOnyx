@@ -9,7 +9,7 @@ import {
   Plus, Trash2, GripVertical, Settings2, Save, X, 
   Type, Mail, Phone, ChevronDown, List, CheckSquare, AlignLeft, Upload, 
   ChevronLeft, Layout, Image as ImageIcon, Camera, CircleDot, Palette,
-  Bold, Italic, List as ListIcon
+  Bold, Italic, List as ListIcon, LayoutTemplate
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,6 +26,7 @@ const FIELD_ICONS: Record<FieldType, any> = {
   paragraph: <AlignLeft size={18} />,
   file: <Upload size={18} />,
   image: <ImageIcon size={18} />,
+  section: <LayoutTemplate size={18} />,
 };
 
 export default function FormBuilder() {
@@ -373,15 +374,17 @@ export default function FormBuilder() {
                           </div>
                         </div>
                         <div className="flex items-center justify-between md:justify-end gap-8">
-                          <label className="flex items-center gap-3 cursor-pointer group/toggle">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 group-hover/toggle:text-white/40 transition-colors">Required</span>
-                            <div 
-                              onClick={() => updateField(field.id, { required: !field.required })}
-                              className={`w-10 h-5 rounded-full transition-colors relative ${field.required ? 'bg-brand-accent' : 'bg-white/10'}`}
-                            >
-                              <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${field.required ? 'left-6' : 'left-1'}`} />
-                            </div>
-                          </label>
+                          {field.type !== 'section' && (
+                            <label className="flex items-center gap-3 cursor-pointer group/toggle">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 group-hover/toggle:text-white/40 transition-colors">Required</span>
+                              <div 
+                                onClick={() => updateField(field.id, { required: !field.required })}
+                                className={`w-10 h-5 rounded-full transition-colors relative ${field.required ? 'bg-brand-accent' : 'bg-white/10'}`}
+                              >
+                                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${field.required ? 'left-6' : 'left-1'}`} />
+                              </div>
+                            </label>
+                          )}
                           <button
                             onClick={() => removeField(field.id)}
                             className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white/20 hover:text-red-500 hover:border-red-500/50 transition-all"
@@ -398,17 +401,17 @@ export default function FormBuilder() {
                             value={field.label}
                             onChange={(e) => updateField(field.id, { label: e.target.value })}
                             className="w-full bg-transparent text-xl md:text-2xl font-bold tracking-tight focus:outline-none border-b border-white/5 focus:border-brand-accent/50 transition-colors pb-3"
-                            placeholder="Field Label"
+                            placeholder={field.type === 'section' ? "Section Title" : "Field Label"}
                           />
                         </div>
 
-                        {['text', 'email', 'phone', 'paragraph'].includes(field.type) && (
+                        {['text', 'email', 'phone', 'paragraph', 'section'].includes(field.type) && (
                           <input
                             type="text"
                             value={field.placeholder}
                             onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
                             className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-sm focus:outline-none focus:border-brand-accent/30 placeholder:text-white/5"
-                            placeholder="Placeholder text..."
+                            placeholder={field.type === 'section' ? "Section description (optional)..." : "Placeholder text..."}
                           />
                         )}
 

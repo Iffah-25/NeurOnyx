@@ -19,6 +19,50 @@ export default function FormView() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const pages: FormField[][] = [];
+  if (form) {
+    let currentFields: FormField[] = [];
+    form.fields.forEach(field => {
+      if (field.type === 'section') {
+        if (currentFields.length > 0) {
+          pages.push(currentFields);
+        }
+        currentFields = [field];
+      } else {
+        currentFields.push(field);
+      }
+    });
+    if (currentFields.length > 0 || pages.length === 0) {
+      pages.push(currentFields);
+    }
+  }
+
+  const isFirstPage = currentPage === 0;
+  const isLastPage = currentPage === pages.length - 1;
+
+  const handleNext = () => {
+    const currentFields = pages[currentPage];
+    for (const field of currentFields) {
+      if (field.required) {
+        const val = formData[field.id];
+        if (!val || (Array.isArray(val) && val.length === 0)) {
+          setError(`${field.label} is required`);
+          return;
+        }
+      }
+    }
+    setError('');
+    setCurrentPage(p => p + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrev = () => {
+    setError('');
+    setCurrentPage(p => p - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -59,8 +103,11 @@ export default function FormView() {
     try {
       // Basic validation for required fields
       for (const field of form.fields) {
-        if (field.required && !formData[field.id]) {
-          throw new Error(`${field.label} is required`);
+        if (field.required) {
+          const val = formData[field.id];
+          if (!val || (Array.isArray(val) && val.length === 0)) {
+            throw new Error(`${field.label} is required`);
+          }
         }
       }
 
@@ -264,115 +311,126 @@ export default function FormView() {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-10 glass p-8 md:p-12 rounded-[2.5rem]">
-          {form.fields.map((field, index) => (
+          {pages[currentPage]?.map((field, index) => (
             <div key={field.id} className="space-y-4">
-              <label className="block text-lg font-bold tracking-tight text-white/80">
-                {field.label}
-                {field.required && <span className="text-brand-accent ml-1">*</span>}
-              </label>
+              {field.type === 'section' ? (
+                <div className="mb-8 pb-4 border-b border-white/10">
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{field.label}</h2>
+                  {field.placeholder && (
+                    <p className="text-white/40 mt-2 text-sm md:text-base">{field.placeholder}</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <label className="block text-lg font-bold tracking-tight text-white/80">
+                    {field.label}
+                    {field.required && <span className="text-brand-accent ml-1">*</span>}
+                  </label>
 
-              <div className="relative">
-                {field.type === 'text' || field.type === 'email' || field.type === 'phone' ? (
-                  <input
-                    type={field.type === 'phone' ? 'tel' : field.type}
-                    required={field.required}
-                    placeholder={field.placeholder || 'Enter your response...'}
-                    value={formData[field.id] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent/50 transition-all text-lg placeholder:text-white/5"
-                  />
-                ) : field.type === 'paragraph' ? (
-                  <textarea
-                    required={field.required}
-                    placeholder={field.placeholder || 'Type your response here...'}
-                    value={formData[field.id] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
-                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent/50 transition-all text-lg min-h-[160px] resize-none placeholder:text-white/5 leading-relaxed"
-                  />
-                ) : field.type === 'dropdown' ? (
                   <div className="relative">
-                    <select
-                      required={field.required}
-                      value={formData[field.id] || ''}
-                      onChange={(e) => handleInputChange(field.id, e.target.value)}
-                      className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent/50 transition-all text-lg appearance-none cursor-pointer"
-                    >
-                      <option value="" className="bg-brand-bg text-white/20">Select an option</option>
-                      {field.options?.map((opt, i) => (
-                        <option key={i} value={opt} className="bg-brand-bg text-white">{opt}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" size={20} />
-                  </div>
-                ) : field.type === 'single-choice' || field.type === 'multiple-choice' ? (
-                  <div className="grid grid-cols-1 gap-3">
-                    {field.options?.map((opt, i) => (
-                      <label key={i} className="flex items-center justify-between p-5 glass rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-all group/opt">
-                        <span className="text-white/60 group-hover/opt:text-white transition-colors">{opt}</span>
-                        <input
-                          type="radio"
-                          name={field.id}
+                    {field.type === 'text' || field.type === 'email' || field.type === 'phone' ? (
+                      <input
+                        type={field.type === 'phone' ? 'tel' : field.type}
+                        required={field.required}
+                        placeholder={field.placeholder || 'Enter your response...'}
+                        value={formData[field.id] || ''}
+                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent/50 transition-all text-lg placeholder:text-white/5"
+                      />
+                    ) : field.type === 'paragraph' ? (
+                      <textarea
+                        required={field.required}
+                        placeholder={field.placeholder || 'Type your response here...'}
+                        value={formData[field.id] || ''}
+                        onChange={(e) => handleInputChange(field.id, e.target.value)}
+                        className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent/50 transition-all text-lg min-h-[160px] resize-none placeholder:text-white/5 leading-relaxed"
+                      />
+                    ) : field.type === 'dropdown' ? (
+                      <div className="relative">
+                        <select
                           required={field.required}
-                          checked={formData[field.id] === opt}
-                          onChange={() => handleInputChange(field.id, opt)}
-                          className="w-5 h-5 border-white/20 bg-transparent text-brand-accent focus:ring-brand-accent/50"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                ) : field.type === 'checkbox' ? (
-                  <div className="grid grid-cols-1 gap-3">
-                    {field.options?.map((opt, i) => (
-                      <label key={i} className="flex items-center justify-between p-5 glass rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-all group/opt">
-                        <span className="text-white/60 group-hover/opt:text-white transition-colors">{opt}</span>
+                          value={formData[field.id] || ''}
+                          onChange={(e) => handleInputChange(field.id, e.target.value)}
+                          className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 focus:outline-none focus:border-brand-accent/50 transition-all text-lg appearance-none cursor-pointer"
+                        >
+                          <option value="" className="bg-brand-bg text-white/20">Select an option</option>
+                          {field.options?.map((opt, i) => (
+                            <option key={i} value={opt} className="bg-brand-bg text-white">{opt}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" size={20} />
+                      </div>
+                    ) : field.type === 'single-choice' || field.type === 'multiple-choice' ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {field.options?.map((opt, i) => (
+                          <label key={i} className="flex items-center justify-between p-5 glass rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-all group/opt">
+                            <span className="text-white/60 group-hover/opt:text-white transition-colors">{opt}</span>
+                            <input
+                              type="radio"
+                              name={field.id}
+                              required={field.required}
+                              checked={formData[field.id] === opt}
+                              onChange={() => handleInputChange(field.id, opt)}
+                              className="w-5 h-5 border-white/20 bg-transparent text-brand-accent focus:ring-brand-accent/50"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    ) : field.type === 'checkbox' ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {field.options?.map((opt, i) => (
+                          <label key={i} className="flex items-center justify-between p-5 glass rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-all group/opt">
+                            <span className="text-white/60 group-hover/opt:text-white transition-colors">{opt}</span>
+                            <input
+                              type="checkbox"
+                              checked={(formData[field.id] || []).includes(opt)}
+                              onChange={(e) => {
+                                const current = formData[field.id] || [];
+                                const next = e.target.checked 
+                                  ? [...current, opt]
+                                  : current.filter((v: string) => v !== opt);
+                                handleInputChange(field.id, next);
+                              }}
+                              className="w-5 h-5 rounded-lg border-white/20 bg-transparent text-brand-accent focus:ring-brand-accent/50"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    ) : field.type === 'file' ? (
+                      <div className="relative group/file">
                         <input
-                          type="checkbox"
-                          checked={(formData[field.id] || []).includes(opt)}
-                          onChange={(e) => {
-                            const current = formData[field.id] || [];
-                            const next = e.target.checked 
-                              ? [...current, opt]
-                              : current.filter((v: string) => v !== opt);
-                            handleInputChange(field.id, next);
-                          }}
-                          className="w-5 h-5 rounded-lg border-white/20 bg-transparent text-brand-accent focus:ring-brand-accent/50"
+                          type="file"
+                          onChange={(e) => handleInputChange(field.id, e.target.files?.[0]?.name)}
+                          className="absolute inset-0 opacity-0 cursor-pointer z-10"
                         />
-                      </label>
-                    ))}
-                  </div>
-                ) : field.type === 'file' ? (
-                  <div className="relative group/file">
-                    <input
-                      type="file"
-                      onChange={(e) => handleInputChange(field.id, e.target.files?.[0]?.name)}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="glass rounded-2xl p-10 text-center group-hover/file:bg-white/[0.05] transition-all">
-                      <Upload className="mx-auto text-white/10 mb-4 group-hover/file:text-brand-accent transition-colors" size={32} />
-                      <p className="text-sm text-white/20 group-hover/file:text-white/40 transition-colors">
-                        {formData[field.id] || 'Click or drag to upload file'}
-                      </p>
-                    </div>
-                  </div>
-                ) : field.type === 'image' ? (
-                  <div className="space-y-4">
-                    {field.imageUrl ? (
-                      <div className="relative rounded-2xl overflow-hidden glass border border-white/10">
-                        <img 
-                          src={field.imageUrl} 
-                          alt={field.label} 
-                          className="w-full h-auto max-h-[500px] object-contain p-4" 
-                          referrerPolicy="no-referrer"
-                        />
+                        <div className="glass rounded-2xl p-10 text-center group-hover/file:bg-white/[0.05] transition-all">
+                          <Upload className="mx-auto text-white/10 mb-4 group-hover/file:text-brand-accent transition-colors" size={32} />
+                          <p className="text-sm text-white/20 group-hover/file:text-white/40 transition-colors">
+                            {formData[field.id] || 'Click or drag to upload file'}
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="p-8 glass rounded-2xl text-center text-white/20 text-sm italic">
-                        No image provided
+                    ) : field.type === 'image' ? (
+                      <div className="space-y-4">
+                        {field.imageUrl ? (
+                          <div className="relative rounded-2xl overflow-hidden glass border border-white/10">
+                            <img 
+                              src={field.imageUrl} 
+                              alt={field.label} 
+                              className="w-full h-auto max-h-[500px] object-contain p-4" 
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                        ) : (
+                          <div className="p-8 glass rounded-2xl text-center text-white/20 text-sm italic">
+                            No image provided
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
+                </>
+              )}
             </div>
           ))}
 
@@ -383,25 +441,49 @@ export default function FormView() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="group relative w-full py-5 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow"
-          >
-            <span className="relative z-10 flex items-center justify-center gap-3">
-              {submitting ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  Submit Response
-                  <Send size={18} />
-                </>
-              )}
-            </span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 pt-6">
+            {!isFirstPage && (
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="px-8 py-5 glass rounded-2xl font-bold hover:bg-white/10 transition-all flex-1 text-white/80"
+              >
+                Previous
+              </button>
+            )}
+            
+            {isLastPage ? (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="group relative flex-[2] py-5 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  {submitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Response
+                      <Send size={18} />
+                    </>
+                  )}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="group relative flex-[2] py-5 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  Next Page
+                </span>
+              </button>
+            )}
+          </div>
         </form>
 
         <footer className="mt-24 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 opacity-20 hover:opacity-100 transition-opacity">

@@ -69,10 +69,11 @@ export default function Responses() {
   const downloadCSV = () => {
     if (!form || responses.length === 0) return;
 
-    const headers = ['Submission Date', ...form.fields.map(f => f.label)];
+    const exportFields = form.fields.filter(f => f.type !== 'section');
+    const headers = ['Submission Date', ...exportFields.map(f => f.label)];
     const rows = responses.map(r => [
       new Date(r.submittedAt).toLocaleString(),
-      ...form.fields.map(f => {
+      ...exportFields.map(f => {
         const val = r.data[f.id];
         return Array.isArray(val) ? val.join('; ') : val || '';
       })
@@ -168,7 +169,7 @@ export default function Responses() {
             <thead>
               <tr className="border-b border-white/5">
                 <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-white/20">Date</th>
-                {form.fields.map(field => (
+                {form.fields.filter(f => f.type !== 'section').map(field => (
                   <th key={field.id} className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-white/20 min-w-[150px]">
                     {field.label}
                   </th>
@@ -182,7 +183,7 @@ export default function Responses() {
                   <td className="py-4 px-4 text-sm text-white/40 whitespace-nowrap">
                     {new Date(response.submittedAt).toLocaleString()}
                   </td>
-                  {form.fields.map(field => (
+                  {form.fields.filter(f => f.type !== 'section').map(field => (
                     <td key={field.id} className="py-4 px-4 text-sm">
                       {Array.isArray(response.data[field.id]) 
                         ? (response.data[field.id] as string[]).join(', ') 

@@ -8,7 +8,8 @@ export type FieldType =
   | 'checkbox' 
   | 'paragraph' 
   | 'file'
-  | 'image';
+  | 'image'
+  | 'section';
 
 export interface FormField {
   id: string;
