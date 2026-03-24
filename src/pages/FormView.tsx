@@ -17,6 +17,7 @@ export default function FormView() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [currentPage, setCurrentPage] = useState(0);
@@ -42,14 +43,57 @@ export default function FormView() {
   const isFirstPage = currentPage === 0;
   const isLastPage = currentPage === pages.length - 1;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const currentFields = pages[currentPage];
     for (const field of currentFields) {
       if (field.required) {
         const val = formData[field.id];
         if (!val || (Array.isArray(val) && val.length === 0)) {
           setError(`${field.label} is required`);
+          const element = document.getElementById(field.id);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
           return;
+        }
+      }
+
+      // Domain restriction check
+      if (form?.restrictToDomain && field.type === 'email') {
+        const email = formData[field.id];
+        if (email && !email.toLowerCase().endsWith('@aiktc.ac.in')) {
+          setError('Only @aiktc.ac.in email addresses are allowed');
+          const element = document.getElementById(field.id);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          return;
+        }
+      }
+
+      // Unique email check if limitOneResponse is active
+      if (form?.limitOneResponse && field.type === 'email') {
+        const email = formData[field.id];
+        if (email) {
+          try {
+            const q = query(
+              collection(db, 'responses'),
+              where('formId', '==', form.id),
+              where(`data.${field.id}`, '==', email.toLowerCase()),
+              limit(1)
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              setError('You have already submitted a response with this email address');
+              const element = document.getElementById(field.id);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+              return;
+            }
+          } catch (err) {
+            console.error('Error checking unique email:', err);
+          }
         }
       }
     }
@@ -81,11 +125,11 @@ export default function FormView() {
             }
           }
         } else {
-          setError('Form not found');
+          setLoadError('Form not found');
         }
       } catch (err) {
         console.error(err);
-        setError('Failed to load form');
+        setLoadError('Failed to load form');
       } finally {
         setLoading(false);
       }
@@ -106,14 +150,60 @@ export default function FormView() {
         if (field.required) {
           const val = formData[field.id];
           if (!val || (Array.isArray(val) && val.length === 0)) {
-            throw new Error(`${field.label} is required`);
+            const errorMsg = `${field.label} is required`;
+            setError(errorMsg);
+            const element = document.getElementById(field.id);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            throw new Error(errorMsg);
+          }
+        }
+
+        // Domain restriction check
+        if (form.restrictToDomain && field.type === 'email') {
+          const email = formData[field.id];
+          if (email && !email.toLowerCase().endsWith('@aiktc.ac.in')) {
+            const errorMsg = 'Only @aiktc.ac.in email addresses are allowed';
+            setError(errorMsg);
+            const element = document.getElementById(field.id);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            throw new Error(errorMsg);
+          }
+        }
+
+        // Unique email check in database if limitOneResponse is active
+        if (form.limitOneResponse && field.type === 'email') {
+          const email = formData[field.id];
+          if (email) {
+            const q = query(
+              collection(db, 'responses'),
+              where('formId', '==', form.id),
+              where(`data.${field.id}`, '==', email.toLowerCase()),
+              limit(1)
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              setAlreadySubmitted(true);
+              throw new Error('You have already submitted a response with this email address');
+            }
           }
         }
       }
 
+      // Sanitize email fields to lowercase for consistent checking
+      const sanitizedData = { ...formData };
+      form.fields.forEach(f => {
+        if (f.type === 'email' && sanitizedData[f.id]) {
+          sanitizedData[f.id] = sanitizedData[f.id].toLowerCase();
+        }
+      });
+
       await addDoc(collection(db, 'responses'), sanitizeForFirestore({
         formId: form.id,
-        data: formData,
+        data: sanitizedData,
         submittedAt: Date.now(),
       }));
 
@@ -122,8 +212,10 @@ export default function FormView() {
       }
 
       setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setError(err.message || 'Failed to submit form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
     }
@@ -131,6 +223,7 @@ export default function FormView() {
 
   const handleInputChange = (fieldId: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));
+    if (error) setError('');
   };
 
   const handleImageUpload = async (fieldId: string, file: File) => {
@@ -165,16 +258,13 @@ export default function FormView() {
     </div>
   );
 
-  if (error || !form) return (
+  if (!loading && (loadError || !form)) return (
     <div className="max-w-md mx-auto py-20 text-center space-y-6">
       <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
         <AlertCircle className="text-red-500" size={40} />
       </div>
-      <h2 className="text-3xl font-bold">Oops! {error}</h2>
+      <h2 className="text-3xl font-bold">Oops! {loadError || 'Form not found'}</h2>
       <p className="text-white/40">The form you're looking for might have been moved or deleted.</p>
-      <Link to="/" className="inline-block px-6 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
-        Back to Home
-      </Link>
     </div>
   );
 
@@ -192,11 +282,6 @@ export default function FormView() {
         <p className="text-white/40 text-lg leading-relaxed">
           You have already submitted a response to this form. Only one submission is allowed per user.
         </p>
-        <div className="pt-8">
-          <Link to="/" className="px-8 py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all">
-            Return to Home
-          </Link>
-        </div>
       </motion.div>
     </div>
   );
@@ -235,9 +320,6 @@ export default function FormView() {
           >
             Submit another response
           </button>
-          <Link to="/" className="text-white/20 hover:text-white text-sm transition-colors">
-            Return to Home
-          </Link>
         </div>
       </motion.div>
     </div>
@@ -257,11 +339,6 @@ export default function FormView() {
         <p className="text-white/40 text-lg leading-relaxed">
           This form is no longer accepting responses. Please contact the organizer if you have any questions.
         </p>
-        <div className="pt-8">
-          <Link to="/" className="px-8 py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all">
-            Return to Home
-          </Link>
-        </div>
       </motion.div>
     </div>
   );
@@ -311,8 +388,14 @@ export default function FormView() {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-10 glass p-8 md:p-12 rounded-[2.5rem]">
+          {error && (
+            <div className="p-5 glass rounded-2xl border-red-500/20 text-red-400 text-sm flex items-center gap-3 mb-6">
+              <AlertCircle size={18} />
+              {error}
+            </div>
+          )}
           {pages[currentPage]?.map((field, index) => (
-            <div key={field.id} className="space-y-4">
+            <div key={field.id} id={field.id} className="space-y-4 scroll-mt-24">
               {field.type === 'section' ? (
                 <div className="mb-8 pb-4 border-b border-white/10">
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{field.label}</h2>

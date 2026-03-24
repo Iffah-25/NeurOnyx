@@ -27,13 +27,15 @@ export default function Navbar({ user }: NavbarProps) {
         </Link>
 
         <div className="flex items-center gap-3 sm:gap-6">
-          <Link 
-            to="/" 
-            className="text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-brand-accent transition-colors flex items-center gap-1.5"
-          >
-            <Home size={14} />
-            <span className="hidden sm:inline">Portal</span>
-          </Link>
+          {user && (
+            <Link 
+              to="/" 
+              className="text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-brand-accent transition-colors flex items-center gap-1.5"
+            >
+              <Home size={14} />
+              <span className="hidden sm:inline">Portal</span>
+            </Link>
+          )}
           
           {user ? (
             <>

@@ -20,7 +20,7 @@ function AppContent({ user }: { user: User | null }) {
       {!isFormView && <Navbar user={user} />}
       <main className={`container mx-auto px-4 ${isFormView ? 'py-0' : 'py-8'}`}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={user ? <Home /> : <Navigate to="/login" />} />
           <Route path="/login" element={user ? <Navigate to="/admin" /> : <Login />} />
           <Route 
             path="/admin" 

@@ -33,6 +33,7 @@ export interface FormStructure {
   successMessage?: string;
   isOpen: boolean;
   limitOneResponse?: boolean;
+  restrictToDomain?: boolean; // Restrict to @aiktc.ac.in
   theme?: {
     fontFamily: string;
     accentColor: string;

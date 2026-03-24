@@ -39,6 +39,7 @@ export default function FormBuilder() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isOpen, setIsOpen] = useState(true);
   const [limitOneResponse, setLimitOneResponse] = useState(false);
+  const [restrictToDomain, setRestrictToDomain] = useState(false);
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -107,6 +108,7 @@ export default function FormBuilder() {
           setSuccessMessage(data.successMessage || '');
           setIsOpen(data.isOpen !== undefined ? data.isOpen : true);
           setLimitOneResponse(data.limitOneResponse || false);
+          setRestrictToDomain(data.restrictToDomain || false);
           if (data.theme) {
             setTheme(data.theme);
           }
@@ -192,6 +194,7 @@ export default function FormBuilder() {
         successMessage,
         isOpen,
         limitOneResponse,
+        restrictToDomain,
         theme,
         updatedAt: Date.now(),
         slug: slug || uuidv4().slice(0, 8),
@@ -658,6 +661,21 @@ export default function FormBuilder() {
                         className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${limitOneResponse ? 'bg-brand-accent/20' : 'bg-white/10'}`}
                       >
                         <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${limitOneResponse ? 'translate-x-7' : 'translate-x-2'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-5 glass rounded-2xl">
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40">Domain Restriction</label>
+                        <p className={`text-sm font-bold ${restrictToDomain ? 'text-brand-accent' : 'text-white/60'}`}>
+                          {restrictToDomain ? 'Restrict to @aiktc.ac.in' : 'No domain restriction'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setRestrictToDomain(!restrictToDomain)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${restrictToDomain ? 'bg-brand-accent/20' : 'bg-white/10'}`}
+                      >
+                        <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${restrictToDomain ? 'translate-x-7' : 'translate-x-2'}`} />
                       </button>
                     </div>
                   </div>

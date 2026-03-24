@@ -157,6 +157,11 @@ export default function AdminDashboard() {
                         <div className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${form.isOpen !== false ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                           {form.isOpen !== false ? 'Active' : 'Closed'}
                         </div>
+                        {form.restrictToDomain && (
+                          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border bg-brand-accent/10 text-brand-accent border-brand-accent/20">
+                            @aiktc.ac.in Only
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <button
