@@ -4,11 +4,10 @@ import { db, auth } from '../lib/firebase';
 import { FormStructure } from '../types';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Edit3, BarChart2, ExternalLink, Copy, Check, Trash2, HardDrive, ArrowUpRight } from 'lucide-react';
+import { Plus, Search, Edit3, BarChart2, ExternalLink, Copy, Check, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
 import FirebasePermissionError from '../components/FirebasePermissionError';
-import { ROOT_PARENT_FOLDER_URL } from '../lib/drive';
 
 export default function AdminDashboard() {
   const [forms, setForms] = useState<FormStructure[]>([]);
@@ -137,25 +136,13 @@ export default function AdminDashboard() {
             </h1>
             <p className="text-white/40 max-w-xl text-sm sm:text-base">Manage your neural data structures, event streams, and member engagement pipelines.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <a
-              href={ROOT_PARENT_FOLDER_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2.5 px-6 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-2xl transition-all border border-emerald-500/20 w-full sm:w-auto"
-            >
-              <HardDrive size={20} />
-              <span>Google Drive Folder</span>
-              <ArrowUpRight size={16} />
-            </a>
-            <Link
-              to="/admin/create"
-              className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow w-full sm:w-auto"
-            >
-              <Plus size={24} />
-              <span>Create New Form</span>
-            </Link>
-          </div>
+          <Link
+            to="/admin/create"
+            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow w-full sm:w-auto"
+          >
+            <Plus size={24} />
+            <span>Create New Form</span>
+          </Link>
         </div>
 
         <div className="relative group">
