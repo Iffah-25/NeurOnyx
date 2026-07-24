@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, addDoc, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { FormStructure, FormField } from '../types';
 import { sanitizeForFirestore } from '../lib/utils';
@@ -111,16 +111,46 @@ export default function FormView() {
 
   useEffect(() => {
     const fetchForm = async () => {
+      if (!slug) {
+        setLoadError('Form not found');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const q = query(collection(db, 'forms'), where('slug', '==', slug), limit(1));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          const data = doc.data() as FormStructure;
-          setForm({ id: doc.id, ...data });
+        let foundDoc: { id: string; data: FormStructure } | null = null;
+
+        // 1. Try querying by slug
+        try {
+          const q = query(collection(db, 'forms'), where('slug', '==', slug), limit(1));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const docSnap = querySnapshot.docs[0];
+            foundDoc = { id: docSnap.id, data: docSnap.data() as FormStructure };
+          }
+        } catch (err) {
+          console.warn('Error querying form by slug:', err);
+        }
+
+        // 2. Fallback: Try fetching directly by document ID in case slug is form ID
+        if (!foundDoc) {
+          try {
+            const docRef = doc(db, 'forms', slug);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              foundDoc = { id: docSnap.id, data: docSnap.data() as FormStructure };
+            }
+          } catch (err) {
+            console.warn('Error fetching form by doc ID:', err);
+          }
+        }
+
+        if (foundDoc) {
+          const data = foundDoc.data;
+          setForm({ id: foundDoc.id, ...data });
 
           if (data.limitOneResponse) {
-            const hasSubmitted = localStorage.getItem(`submitted_${doc.id}`);
+            const hasSubmitted = localStorage.getItem(`submitted_${foundDoc.id}`);
             if (hasSubmitted) {
               setAlreadySubmitted(true);
             }
