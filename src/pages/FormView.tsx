@@ -4,11 +4,13 @@ import { collection, query, where, getDocs, addDoc, limit } from 'firebase/fires
 import { db } from '../lib/firebase';
 import { FormStructure, FormField } from '../types';
 import { sanitizeForFirestore } from '../lib/utils';
+import { uploadFileToGoogleDrive, ROOT_PARENT_FOLDER_URL } from '../lib/drive';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, AlertCircle, Send, Loader2, Info, ExternalLink, Camera, Image as ImageIcon, X, ChevronDown, Upload } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Send, Loader2, Info, ExternalLink, Camera, Image as ImageIcon, X, ChevronDown, Upload, HardDrive } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
 import SocialLinks from '../components/SocialLinks';
+import FirebasePermissionError from '../components/FirebasePermissionError';
 
 export default function FormView() {
   const { slug } = useParams();
@@ -21,6 +23,8 @@ export default function FormView() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [currentPage, setCurrentPage] = useState(0);
+  const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
+
 
   const pages: FormField[][] = [];
   if (form) {
@@ -127,9 +131,9 @@ export default function FormView() {
         } else {
           setLoadError('Form not found');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setLoadError('Failed to load form');
+        setLoadError(err.message || 'Failed to load form');
       } finally {
         setLoading(false);
       }
@@ -226,16 +230,49 @@ export default function FormView() {
     if (error) setError('');
   };
 
-  const handleImageUpload = async (fieldId: string, file: File) => {
-    if (file.size > 1024 * 1024) {
-      alert('Image too large. Max 1MB.');
+  const handleFileUpload = async (fieldId: string, file: File) => {
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      alert('File is too large. Maximum allowed size is 20MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      handleInputChange(fieldId, reader.result as string);
-    };
+
+    setUploadingFields(prev => ({ ...prev, [fieldId]: true }));
+
+    try {
+      // Upload directly to Google Drive folder for this form
+      const driveResult = await uploadFileToGoogleDrive(
+        file,
+        form?.title || 'Form Submissions'
+      );
+
+      handleInputChange(fieldId, {
+        name: file.name,
+        url: driveResult.webViewLink,
+        driveFileId: driveResult.id,
+        driveFolderUrl: driveResult.driveFolderUrl,
+        size: file.size,
+        type: file.type,
+        isDrive: true
+      });
+    } catch (err: any) {
+      console.warn('Google Drive upload error, falling back to embedded link:', err);
+      // Fallback to local DataURL preview if Drive upload encounters any issue
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        handleInputChange(fieldId, {
+          name: file.name,
+          url: result,
+          size: file.size,
+          type: file.type,
+          isDrive: false
+        });
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingFields(prev => ({ ...prev, [fieldId]: false }));
+    }
   };
 
   if (loading) return (
@@ -259,12 +296,18 @@ export default function FormView() {
   );
 
   if (!loading && (loadError || !form)) return (
-    <div className="max-w-md mx-auto py-20 text-center space-y-6">
-      <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
-        <AlertCircle className="text-red-500" size={40} />
-      </div>
-      <h2 className="text-3xl font-bold">Oops! {loadError || 'Form not found'}</h2>
-      <p className="text-white/40">The form you're looking for might have been moved or deleted.</p>
+    <div className="max-w-2xl mx-auto py-20 text-center space-y-6 px-4">
+      {loadError?.toLowerCase().includes('permission') || loadError?.toLowerCase().includes('denied') ? (
+        <FirebasePermissionError error={loadError} onRetry={() => window.location.reload()} />
+      ) : (
+        <>
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="text-red-500" size={40} />
+          </div>
+          <h2 className="text-3xl font-bold">Oops! {loadError || 'Form not found'}</h2>
+          <p className="text-white/40">The form you're looking for might have been moved or deleted.</p>
+        </>
+      )}
     </div>
   );
 
@@ -483,14 +526,54 @@ export default function FormView() {
                       <div className="relative group/file">
                         <input
                           type="file"
-                          onChange={(e) => handleInputChange(field.id, e.target.files?.[0]?.name)}
-                          className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          disabled={uploadingFields[field.id]}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(field.id, file);
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                         />
-                        <div className="glass rounded-2xl p-10 text-center group-hover/file:bg-white/[0.05] transition-all">
-                          <Upload className="mx-auto text-white/10 mb-4 group-hover/file:text-brand-accent transition-colors" size={32} />
-                          <p className="text-sm text-white/20 group-hover/file:text-white/40 transition-colors">
-                            {formData[field.id] || 'Click or drag to upload file'}
-                          </p>
+                        <div className="glass rounded-2xl p-8 text-center group-hover/file:bg-white/[0.05] transition-all flex flex-col items-center justify-center gap-3">
+                          {uploadingFields[field.id] ? (
+                            <>
+                              <Loader2 className="animate-spin text-brand-accent" size={32} />
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-white">Uploading file to Google Drive...</p>
+                                <p className="text-xs text-brand-accent/80 font-mono">
+                                  Folder: "{form?.title || 'Form Submissions'}"
+                                </p>
+                              </div>
+                            </>
+                          ) : formData[field.id] ? (
+                            <>
+                              <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
+                                <HardDrive size={28} />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-white">
+                                  {formData[field.id].name || formData[field.id]}
+                                </p>
+                                <div className="flex items-center justify-center gap-2 text-xs text-emerald-400">
+                                  <span>{formData[field.id].isDrive ? 'Saved to Google Drive' : 'File attached'}</span>
+                                  {formData[field.id].size && (
+                                    <span>({(formData[field.id].size / 1024).toFixed(1)} KB)</span>
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="text-white/20 group-hover/file:text-brand-accent transition-colors" size={32} />
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-white/80">
+                                  Click or drag to upload file
+                                </p>
+                                <p className="text-xs text-white/40">
+                                  Files will be automatically stored in Google Drive
+                                </p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     ) : field.type === 'image' ? (

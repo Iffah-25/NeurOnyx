@@ -4,9 +4,11 @@ import { db, auth } from '../lib/firebase';
 import { FormStructure } from '../types';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Edit3, BarChart2, ExternalLink, Copy, Check, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit3, BarChart2, ExternalLink, Copy, Check, Trash2, HardDrive, ArrowUpRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
+import FirebasePermissionError from '../components/FirebasePermissionError';
+import { ROOT_PARENT_FOLDER_URL } from '../lib/drive';
 
 export default function AdminDashboard() {
   const [forms, setForms] = useState<FormStructure[]>([]);
@@ -15,25 +17,50 @@ export default function AdminDashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    let unsubscribeSnapshot: (() => void) | null = null;
 
-    const q = query(
-      collection(db, 'forms'),
-      where('createdBy', '==', auth.currentUser.uid)
-    );
+    const unsubscribeAuth = auth?.onAuthStateChanged?.((currentUser) => {
+      if (!currentUser) {
+        setForms([]);
+        setLoading(false);
+        return;
+      }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const formsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FormStructure[];
-      setForms(formsData.sort((a, b) => b.createdAt - a.createdAt));
-      setLoading(false);
+      setError(null);
+      setLoading(true);
+
+      const q = query(
+        collection(db, 'forms'),
+        where('createdBy', '==', currentUser.uid)
+      );
+
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+      unsubscribeSnapshot = onSnapshot(
+        q,
+        (snapshot) => {
+          const formsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as FormStructure[];
+          setForms(formsData.sort((a, b) => b.createdAt - a.createdAt));
+          setLoading(false);
+        },
+        (err) => {
+          console.error("Error loading forms:", err);
+          setError(err.message || "Failed to load forms");
+          setLoading(false);
+        }
+      );
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeAuth) unsubscribeAuth();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
   }, []);
 
   const copyToClipboard = (slug: string, id: string) => {
@@ -110,13 +137,25 @@ export default function AdminDashboard() {
             </h1>
             <p className="text-white/40 max-w-xl text-sm sm:text-base">Manage your neural data structures, event streams, and member engagement pipelines.</p>
           </div>
-          <Link
-            to="/admin/create"
-            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow w-full sm:w-auto"
-          >
-            <Plus size={24} />
-            <span>Create New Form</span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <a
+              href={ROOT_PARENT_FOLDER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2.5 px-6 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-2xl transition-all border border-emerald-500/20 w-full sm:w-auto"
+            >
+              <HardDrive size={20} />
+              <span>Google Drive Folder</span>
+              <ArrowUpRight size={16} />
+            </a>
+            <Link
+              to="/admin/create"
+              className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-brand-accent text-brand-bg font-bold rounded-2xl hover:bg-white transition-all accent-glow w-full sm:w-auto"
+            >
+              <Plus size={24} />
+              <span>Create New Form</span>
+            </Link>
+          </div>
         </div>
 
         <div className="relative group">
@@ -129,6 +168,10 @@ export default function AdminDashboard() {
             className="w-full bg-white/[0.02] border border-white/5 rounded-3xl py-6 pl-16 pr-8 focus:outline-none focus:border-brand-accent/50 transition-all text-lg placeholder:text-white/10"
           />
         </div>
+
+        {error && (
+          <FirebasePermissionError error={error} onRetry={() => window.location.reload()} />
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
