@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Edit3, BarChart2, ExternalLink, Copy, Check, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
-import FirebasePermissionError from '../components/FirebasePermissionError';
 
 export default function AdminDashboard() {
   const [forms, setForms] = useState<FormStructure[]>([]);
@@ -16,50 +15,25 @@ export default function AdminDashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let unsubscribeSnapshot: (() => void) | null = null;
+    if (!auth.currentUser) return;
 
-    const unsubscribeAuth = auth?.onAuthStateChanged?.((currentUser) => {
-      if (!currentUser) {
-        setForms([]);
-        setLoading(false);
-        return;
-      }
+    const q = query(
+      collection(db, 'forms'),
+      where('createdBy', '==', auth.currentUser.uid)
+    );
 
-      setError(null);
-      setLoading(true);
-
-      const q = query(
-        collection(db, 'forms'),
-        where('createdBy', '==', currentUser.uid)
-      );
-
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
-
-      unsubscribeSnapshot = onSnapshot(
-        q,
-        (snapshot) => {
-          const formsData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as FormStructure[];
-          setForms(formsData.sort((a, b) => b.createdAt - a.createdAt));
-          setLoading(false);
-        },
-        (err) => {
-          console.error("Error loading forms:", err);
-          setError(err.message || "Failed to load forms");
-          setLoading(false);
-        }
-      );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const formsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as FormStructure[];
+      setForms(formsData.sort((a, b) => b.createdAt - a.createdAt));
+      setLoading(false);
     });
 
-    return () => {
-      if (unsubscribeAuth) unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
-    };
+    return () => unsubscribe();
   }, []);
 
   const copyToClipboard = (slug: string, id: string) => {
@@ -155,10 +129,6 @@ export default function AdminDashboard() {
             className="w-full bg-white/[0.02] border border-white/5 rounded-3xl py-6 pl-16 pr-8 focus:outline-none focus:border-brand-accent/50 transition-all text-lg placeholder:text-white/10"
           />
         </div>
-
-        {error && (
-          <FirebasePermissionError error={error} onRetry={() => window.location.reload()} />
-        )}
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

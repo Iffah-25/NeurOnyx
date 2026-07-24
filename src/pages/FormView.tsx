@@ -9,7 +9,6 @@ import { CheckCircle2, AlertCircle, Send, Loader2, Info, ExternalLink, Camera, I
 import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
 import SocialLinks from '../components/SocialLinks';
-import FirebasePermissionError from '../components/FirebasePermissionError';
 
 export default function FormView() {
   const { slug } = useParams();
@@ -128,9 +127,9 @@ export default function FormView() {
         } else {
           setLoadError('Form not found');
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
-        setLoadError(err.message || 'Failed to load form');
+        setLoadError('Failed to load form');
       } finally {
         setLoading(false);
       }
@@ -260,18 +259,12 @@ export default function FormView() {
   );
 
   if (!loading && (loadError || !form)) return (
-    <div className="max-w-2xl mx-auto py-20 text-center space-y-6 px-4">
-      {loadError?.toLowerCase().includes('permission') || loadError?.toLowerCase().includes('denied') ? (
-        <FirebasePermissionError error={loadError} onRetry={() => window.location.reload()} />
-      ) : (
-        <>
-          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
-            <AlertCircle className="text-red-500" size={40} />
-          </div>
-          <h2 className="text-3xl font-bold">Oops! {loadError || 'Form not found'}</h2>
-          <p className="text-white/40">The form you're looking for might have been moved or deleted.</p>
-        </>
-      )}
+    <div className="max-w-md mx-auto py-20 text-center space-y-6">
+      <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+        <AlertCircle className="text-red-500" size={40} />
+      </div>
+      <h2 className="text-3xl font-bold">Oops! {loadError || 'Form not found'}</h2>
+      <p className="text-white/40">The form you're looking for might have been moved or deleted.</p>
     </div>
   );
 

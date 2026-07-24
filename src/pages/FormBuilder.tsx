@@ -14,7 +14,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 
 import RichTextEditor from '../components/RichTextEditor';
-import FirebasePermissionError from '../components/FirebasePermissionError';
 
 const FIELD_ICONS: Record<FieldType, any> = {
   text: <Type size={18} />,
@@ -43,7 +42,6 @@ export default function FormBuilder() {
   const [restrictToDomain, setRestrictToDomain] = useState(false);
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
@@ -99,29 +97,23 @@ export default function FormBuilder() {
   useEffect(() => {
     if (id) {
       const fetchForm = async () => {
-        try {
-          const docRef = doc(db, 'forms', id);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data() as FormStructure;
-            setTitle(data.title);
-            setDescription(data.description);
-            setFields(data.fields);
-            setHeaderImage(data.headerImage || '');
-            setSuccessMessage(data.successMessage || '');
-            setIsOpen(data.isOpen !== undefined ? data.isOpen : true);
-            setLimitOneResponse(data.limitOneResponse || false);
-            setRestrictToDomain(data.restrictToDomain || false);
-            if (data.theme) {
-              setTheme(data.theme);
-            }
+        const docRef = doc(db, 'forms', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as FormStructure;
+          setTitle(data.title);
+          setDescription(data.description);
+          setFields(data.fields);
+          setHeaderImage(data.headerImage || '');
+          setSuccessMessage(data.successMessage || '');
+          setIsOpen(data.isOpen !== undefined ? data.isOpen : true);
+          setLimitOneResponse(data.limitOneResponse || false);
+          setRestrictToDomain(data.restrictToDomain || false);
+          if (data.theme) {
+            setTheme(data.theme);
           }
-        } catch (err) {
-          console.error("Error fetching form:", err);
-          alert("Failed to load form details.");
-        } finally {
-          setLoading(false);
         }
+        setLoading(false);
       };
       fetchForm();
     }
@@ -192,7 +184,6 @@ export default function FormBuilder() {
     if (fields.length === 0) return alert('Please add at least one field');
     
     setSaving(true);
-    setSaveError(null);
     try {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const formData = sanitizeForFirestore({
@@ -219,9 +210,9 @@ export default function FormBuilder() {
         });
       }
       navigate('/admin');
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setSaveError(err.message || 'Error saving form');
+      alert('Error saving form');
     } finally {
       setSaving(false);
     }
@@ -259,10 +250,6 @@ export default function FormBuilder() {
             <span>{saving ? 'Saving...' : 'Save Changes'}</span>
           </button>
         </div>
-
-        {saveError && (
-          <FirebasePermissionError error={saveError} />
-        )}
 
         <div className="max-w-4xl mx-auto">
           <div className="space-y-8">

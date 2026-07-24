@@ -24,6 +24,17 @@ const app = isFirebaseConfigured
 
 export const auth = app ? getAuth(app) : null as any;
 
-export const db = app ? getFirestore(app) : null as any;
+// Initialize Firestore with settings to improve stability
+export const db = app ? (() => {
+  try {
+    // Try to initialize with long polling forced, which helps in some proxy/firewall environments
+    return initializeFirestore(app, { 
+      experimentalForceLongPolling: true,
+    });
+  } catch (e) {
+    // If already initialized, return existing instance
+    return getFirestore(app);
+  }
+})() : null as any;
 
 export const storage = app ? getStorage(app) : null as any;

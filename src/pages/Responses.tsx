@@ -8,7 +8,6 @@ import {
   Download, ChevronLeft, Table as TableIcon, 
   BarChart3, Users, Calendar, ArrowUpRight, Search, Trash2
 } from 'lucide-react';
-import FirebasePermissionError from '../components/FirebasePermissionError';
 
 export default function Responses() {
   const { id } = useParams();
@@ -19,40 +18,27 @@ export default function Responses() {
   const [searchTerm, setSearchTerm] = useState('');
   const [responseToDelete, setResponseToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
 
     const fetchForm = async () => {
-      try {
-        const docRef = doc(db, 'forms', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setForm({ id: docSnap.id, ...docSnap.data() } as FormStructure);
-        }
-      } catch (err) {
-        console.error("Error fetching form details:", err);
+      const docRef = doc(db, 'forms', id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setForm({ id: docSnap.id, ...docSnap.data() } as FormStructure);
       }
     };
 
     const q = query(collection(db, 'responses'), where('formId', '==', id));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const responsesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as FormResponse[];
-        setResponses(responsesData.sort((a, b) => b.submittedAt - a.submittedAt));
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching responses:", error);
-        setError(error.message || "Failed to load responses");
-        setLoading(false);
-      }
-    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const responsesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as FormResponse[];
+      setResponses(responsesData.sort((a, b) => b.submittedAt - a.submittedAt));
+      setLoading(false);
+    });
 
     fetchForm();
     return () => unsubscribe();
@@ -139,10 +125,6 @@ export default function Responses() {
           Export CSV
         </button>
       </div>
-
-      {error && (
-        <FirebasePermissionError error={error} onRetry={() => window.location.reload()} />
-      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
