@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { FormStructure, FormResponse } from '../types';
+import { ROOT_PARENT_FOLDER_URL } from '../lib/drive';
 import { motion } from 'motion/react';
 import { 
   Download, ChevronLeft, Table as TableIcon, 
-  BarChart3, Users, Calendar, ArrowUpRight, Search, Trash2
+  BarChart3, Users, Calendar, ArrowUpRight, Search, Trash2, HardDrive
 } from 'lucide-react';
+import FirebasePermissionError from '../components/FirebasePermissionError';
 
 export default function Responses() {
   const { id } = useParams();
@@ -18,27 +20,40 @@ export default function Responses() {
   const [searchTerm, setSearchTerm] = useState('');
   const [responseToDelete, setResponseToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
 
     const fetchForm = async () => {
-      const docRef = doc(db, 'forms', id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setForm({ id: docSnap.id, ...docSnap.data() } as FormStructure);
+      try {
+        const docRef = doc(db, 'forms', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setForm({ id: docSnap.id, ...docSnap.data() } as FormStructure);
+        }
+      } catch (err) {
+        console.error("Error fetching form details:", err);
       }
     };
 
     const q = query(collection(db, 'responses'), where('formId', '==', id));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const responsesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FormResponse[];
-      setResponses(responsesData.sort((a, b) => b.submittedAt - a.submittedAt));
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const responsesData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as FormResponse[];
+        setResponses(responsesData.sort((a, b) => b.submittedAt - a.submittedAt));
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching responses:", error);
+        setError(error.message || "Failed to load responses");
+        setLoading(false);
+      }
+    );
 
     fetchForm();
     return () => unsubscribe();
@@ -75,6 +90,9 @@ export default function Responses() {
       new Date(r.submittedAt).toLocaleString(),
       ...exportFields.map(f => {
         const val = r.data[f.id];
+        if (typeof val === 'object' && val !== null && val.name) {
+          return val.url ? `${val.name} (${val.url.startsWith('data:') ? 'Attached Data' : val.url})` : val.name;
+        }
         return Array.isArray(val) ? val.join('; ') : val || '';
       })
     ]);
@@ -103,6 +121,55 @@ export default function Responses() {
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" /></div>;
 
+  const renderFieldValue = (field: any, val: any) => {
+    if (!val) return <span className="text-white/20">-</span>;
+
+    if (field.type === 'file' || (typeof val === 'object' && val !== null && val.url)) {
+      let fileObj = val;
+      if (typeof val === 'string') {
+        if (val.startsWith('data:') || val.startsWith('http')) {
+          fileObj = { name: 'View File', url: val };
+        } else {
+          return <span className="text-white/80">{val}</span>;
+        }
+      }
+
+      if (fileObj && fileObj.url) {
+        const isImage = fileObj.type?.startsWith('image/') || fileObj.url.startsWith('data:image/');
+        const isDrive = fileObj.isDrive || fileObj.url.includes('drive.google.com');
+
+        return (
+          <div className="flex items-center gap-2">
+            {isImage && (
+              <img src={fileObj.url} alt={fileObj.name || 'Image'} className="w-8 h-8 rounded object-cover border border-white/10" />
+            )}
+            <a
+              href={fileObj.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={!isDrive ? (fileObj.name || 'uploaded-file') : undefined}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                isDrive 
+                  ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30' 
+                  : 'bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/20 border-brand-accent/20'
+              }`}
+            >
+              {isDrive ? <HardDrive size={14} /> : <ArrowUpRight size={14} />}
+              {fileObj.name || 'View File'}
+              <ArrowUpRight size={12} className="opacity-70" />
+            </a>
+          </div>
+        );
+      }
+    }
+
+    if (Array.isArray(val)) {
+      return <span className="text-white/80">{val.join(', ')}</span>;
+    }
+
+    return <span className="text-white/80">{String(val)}</span>;
+  };
+
   if (!form) return <div className="text-center py-20">Form not found</div>;
 
   return (
@@ -116,15 +183,31 @@ export default function Responses() {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{form.title}</h1>
           <p className="text-white/40 text-sm sm:text-base">Analyzing {responses.length} responses from club members</p>
         </div>
-        <button
-          onClick={downloadCSV}
-          disabled={responses.length === 0}
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all disabled:opacity-50 w-full sm:w-auto"
-        >
-          <Download size={20} />
-          Export CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href={ROOT_PARENT_FOLDER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-xl transition-all border border-emerald-500/20 w-full sm:w-auto"
+          >
+            <HardDrive size={18} />
+            Open Drive Folder
+            <ArrowUpRight size={14} />
+          </a>
+          <button
+            onClick={downloadCSV}
+            disabled={responses.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all disabled:opacity-50 w-full sm:w-auto"
+          >
+            <Download size={20} />
+            Export CSV
+          </button>
+        </div>
       </div>
+
+      {error && (
+        <FirebasePermissionError error={error} onRetry={() => window.location.reload()} />
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -185,9 +268,7 @@ export default function Responses() {
                   </td>
                   {form.fields.filter(f => f.type !== 'section').map(field => (
                     <td key={field.id} className="py-4 px-4 text-sm">
-                      {Array.isArray(response.data[field.id]) 
-                        ? (response.data[field.id] as string[]).join(', ') 
-                        : response.data[field.id] || '-'}
+                      {renderFieldValue(field, response.data[field.id])}
                     </td>
                   ))}
                   <td className="py-4 px-4 text-right relative">
