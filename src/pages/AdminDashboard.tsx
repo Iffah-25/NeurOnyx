@@ -62,9 +62,8 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const copyToClipboard = (slug: string | undefined, id: string) => {
-    const shareSlug = slug || id;
-    const url = `${window.location.origin}/forms/${shareSlug}`;
+  const copyToClipboard = (slug: string, id: string) => {
+    const url = `${window.location.origin}/forms/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -203,7 +202,7 @@ export default function AdminDashboard() {
                           {copiedId === form.id ? <Check size={20} /> : <Copy size={20} />}
                         </button>
                         <Link
-                          to={`/forms/${form.slug || form.id}`}
+                          to={`/forms/${form.slug}`}
                           target="_blank"
                           className="p-3 text-white/20 hover:text-brand-accent transition-all"
                           title="View public form"
