@@ -6,7 +6,7 @@ import { FormStructure, FormField } from '../types';
 import { sanitizeForFirestore } from '../lib/utils';
 import { uploadFileToGoogleDrive, ROOT_PARENT_FOLDER_URL } from '../lib/drive';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, AlertCircle, Send, Loader2, Info, ExternalLink, Camera, Image as ImageIcon, X, ChevronDown, Upload, HardDrive } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Send, Loader2, Info, ExternalLink, Camera, Image as ImageIcon, X, ChevronDown, Upload, HardDrive, MessageCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Logo from '../components/Logo';
 import SocialLinks from '../components/SocialLinks';
@@ -351,7 +351,7 @@ export default function FormView() {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="p-12 rounded-3xl border border-white/10 bg-white/[0.02] text-center space-y-8"
+        className="p-8 sm:p-12 rounded-3xl border border-white/10 bg-white/[0.02] text-center space-y-8"
       >
         <div className="w-24 h-24 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="text-brand-accent" size={48} />
@@ -359,12 +359,47 @@ export default function FormView() {
         <h2 className="text-4xl font-bold tracking-tight">Submission Received!</h2>
         
         <div className="text-white/60 text-lg leading-relaxed prose prose-invert max-w-none">
-          {form.successMessage ? (
+          {form?.successMessage ? (
             <ReactMarkdown>{form.successMessage}</ReactMarkdown>
           ) : (
             <p>Thank you for registering. We've received your response and will be in touch soon.</p>
           )}
         </div>
+
+        {/* WhatsApp / Action Link Box */}
+        {form?.ctaLinkUrl && form.ctaLinkUrl.trim() !== '' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-left space-y-4 shadow-xl backdrop-blur-md relative overflow-hidden group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <MessageCircle size={26} />
+              </div>
+              <div className="space-y-1 flex-1">
+                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                  {form.ctaButtonText || 'Join WhatsApp Group'}
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Official Link</span>
+                </h4>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  {form.ctaDescription || 'Join our official group for updates, announcements, and quick discussions.'}
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={form.ctaLinkUrl.startsWith('http') ? form.ctaLinkUrl : `https://${form.ctaLinkUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2.5 w-full py-3.5 px-6 bg-emerald-500 text-slate-950 font-bold rounded-xl hover:bg-emerald-400 active:scale-[0.98] transition-all shadow-lg cursor-pointer"
+            >
+              <span>{form.ctaButtonText || 'Join WhatsApp Group'}</span>
+              <ExternalLink size={18} />
+            </a>
+          </motion.div>
+        )}
 
         <div className="py-6 border-t border-white/5 border-b border-white/5">
           <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">Connect With Us</p>

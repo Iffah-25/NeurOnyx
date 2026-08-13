@@ -9,7 +9,7 @@ import {
   Plus, Trash2, GripVertical, Settings2, Save, X, 
   Type, Mail, Phone, ChevronDown, List, CheckSquare, AlignLeft, Upload, 
   ChevronLeft, Layout, Image as ImageIcon, Camera, CircleDot, Palette,
-  Bold, Italic, List as ListIcon, LayoutTemplate
+  Bold, Italic, List as ListIcon, LayoutTemplate, MessageCircle, Link2
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -38,6 +38,9 @@ export default function FormBuilder() {
   const [fields, setFields] = useState<FormField[]>([]);
   const [headerImage, setHeaderImage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [ctaLinkUrl, setCtaLinkUrl] = useState('');
+  const [ctaButtonText, setCtaButtonText] = useState('');
+  const [ctaDescription, setCtaDescription] = useState('');
   const [isOpen, setIsOpen] = useState(true);
   const [limitOneResponse, setLimitOneResponse] = useState(false);
   const [restrictToDomain, setRestrictToDomain] = useState(false);
@@ -109,6 +112,9 @@ export default function FormBuilder() {
             setFields(data.fields);
             setHeaderImage(data.headerImage || '');
             setSuccessMessage(data.successMessage || '');
+            setCtaLinkUrl(data.ctaLinkUrl || '');
+            setCtaButtonText(data.ctaButtonText || '');
+            setCtaDescription(data.ctaDescription || '');
             setIsOpen(data.isOpen !== undefined ? data.isOpen : true);
             setLimitOneResponse(data.limitOneResponse || false);
             setRestrictToDomain(data.restrictToDomain || false);
@@ -201,6 +207,9 @@ export default function FormBuilder() {
         fields,
         headerImage,
         successMessage,
+        ctaLinkUrl,
+        ctaButtonText,
+        ctaDescription,
         isOpen,
         limitOneResponse,
         restrictToDomain,
@@ -619,10 +628,10 @@ export default function FormBuilder() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-6"
             >
-              <div className="bg-brand-bg border border-white/10 rounded-[2rem] p-8 w-full max-w-lg pointer-events-auto shadow-2xl relative overflow-hidden">
+              <div className="bg-brand-bg border border-white/10 rounded-[2rem] p-8 w-full max-w-lg pointer-events-auto shadow-2xl relative max-h-[85vh] overflow-y-auto">
                 <div className="absolute top-0 left-0 w-full h-1 bg-brand-accent" />
                 
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-8 sticky top-0 bg-brand-bg/95 backdrop-blur-md pt-2 pb-2 z-10">
                   <h3 className="text-xl font-bold flex items-center gap-3">
                     <Settings2 className="text-brand-accent" size={24} />
                     Form Settings
@@ -642,8 +651,65 @@ export default function FormBuilder() {
                       placeholder="Enter a message to show after submission..."
                       value={successMessage}
                       onChange={(e) => setSuccessMessage(e.target.value)}
-                      className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-sm focus:outline-none focus:border-brand-accent/30 h-32 resize-none placeholder:text-white/5 leading-relaxed"
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-sm focus:outline-none focus:border-brand-accent/30 h-28 resize-none placeholder:text-white/5 leading-relaxed"
                     />
+                  </div>
+
+                  {/* Post-Submission WhatsApp / CTA Group Link Box */}
+                  <div className="space-y-4 p-5 glass rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.02]">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="text-emerald-400" size={18} />
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                        WhatsApp / Action Link Box (Optional)
+                      </label>
+                    </div>
+                    <p className="text-xs text-white/50">
+                      Add a WhatsApp group link or custom URL to display a prominent action box on the Thank You screen after submission.
+                    </p>
+
+                    <div className="space-y-3 pt-2">
+                      <div>
+                        <label className="block text-[10px] text-white/40 uppercase mb-1 font-semibold">
+                          Link URL (e.g. WhatsApp Group Link)
+                        </label>
+                        <div className="relative">
+                          <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" size={16} />
+                          <input
+                            type="url"
+                            placeholder="https://chat.whatsapp.com/..."
+                            value={ctaLinkUrl}
+                            onChange={(e) => setCtaLinkUrl(e.target.value)}
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-emerald-400/50"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-white/40 uppercase mb-1 font-semibold">
+                          Button Text
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Join WhatsApp Group"
+                          value={ctaButtonText}
+                          onChange={(e) => setCtaButtonText(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400/50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-white/40 uppercase mb-1 font-semibold">
+                          Box Description
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Join our official WhatsApp group for instant updates!"
+                          value={ctaDescription}
+                          onChange={(e) => setCtaDescription(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-400/50"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-4">

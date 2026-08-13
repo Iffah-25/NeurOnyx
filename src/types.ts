@@ -31,6 +31,9 @@ export interface FormStructure {
   slug: string; // For unique shareable URL
   headerImage?: string;
   successMessage?: string;
+  ctaLinkUrl?: string; // Optional URL e.g. WhatsApp group link
+  ctaButtonText?: string; // Optional button label e.g. "Join WhatsApp Group"
+  ctaDescription?: string; // Optional card text e.g. "Join our official community group for updates!"
   isOpen: boolean;
   limitOneResponse?: boolean;
   restrictToDomain?: boolean; // Restrict to @aiktc.ac.in
