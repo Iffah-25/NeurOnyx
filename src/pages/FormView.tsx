@@ -82,12 +82,14 @@ export default function FormView() {
           try {
             const q = query(
               collection(db, 'responses'),
-              where('formId', '==', form.id),
-              where(`data.${field.id}`, '==', email.toLowerCase()),
-              limit(1)
+              where('formId', '==', form.id)
             );
             const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
+            const exists = querySnapshot.docs.some(docSnap => {
+              const resData = docSnap.data().data || {};
+              return String(resData[field.id] || '').toLowerCase() === email.toLowerCase();
+            });
+            if (exists) {
               setError('You have already submitted a response with this email address');
               const element = document.getElementById(field.id);
               if (element) {
@@ -110,6 +112,19 @@ export default function FormView() {
     setError('');
     setCurrentPage(p => p - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter') {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'TEXTAREA') {
+        return;
+      }
+      e.preventDefault();
+      if (!isLastPage) {
+        handleNext();
+      }
+    }
   };
 
   useEffect(() => {
@@ -184,12 +199,14 @@ export default function FormView() {
           if (email) {
             const q = query(
               collection(db, 'responses'),
-              where('formId', '==', form.id),
-              where(`data.${field.id}`, '==', email.toLowerCase()),
-              limit(1)
+              where('formId', '==', form.id)
             );
             const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
+            const exists = querySnapshot.docs.some(docSnap => {
+              const resData = docSnap.data().data || {};
+              return String(resData[field.id] || '').toLowerCase() === email.toLowerCase();
+            });
+            if (exists) {
               setAlreadySubmitted(true);
               throw new Error('You have already submitted a response with this email address');
             }
@@ -430,7 +447,7 @@ export default function FormView() {
           )}
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-10 glass p-8 md:p-12 rounded-[2.5rem]">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-10 glass p-8 md:p-12 rounded-[2.5rem]">
           {error && (
             <div className="p-5 glass rounded-2xl border-red-500/20 text-red-400 text-sm flex items-center gap-3 mb-6">
               <AlertCircle size={18} />
