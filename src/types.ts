@@ -37,6 +37,10 @@ export interface FormStructure {
   isOpen: boolean;
   limitOneResponse?: boolean;
   restrictToDomain?: boolean; // Restrict to @aiktc.ac.in
+  enableFullscreen?: boolean; // Force fullscreen mode
+  enableTabSwitchLimit?: boolean; // Auto-submit on tab switch
+  maxTabSwitches?: number; // Default 3
+  timeLimitMinutes?: number; // Timer duration in minutes
   theme?: {
     fontFamily: string;
     accentColor: string;
@@ -50,4 +54,7 @@ export interface FormResponse {
   data: Record<string, any>;
   submittedAt: number;
   userEmail?: string;
+  submissionReason?: string;
+  tabSwitchesCount?: number;
+  timeSpentSeconds?: number;
 }

@@ -85,9 +85,11 @@ export default function Responses() {
     if (!form || responses.length === 0) return;
 
     const exportFields = form.fields.filter(f => f.type !== 'section');
-    const headers = ['Submission Date', ...exportFields.map(f => f.label)];
+    const headers = ['Submission Date', 'Submission Status', 'Tab Switches', ...exportFields.map(f => f.label)];
     const rows = responses.map(r => [
       new Date(r.submittedAt).toLocaleString(),
+      r.submissionReason || 'Normal Submission',
+      r.tabSwitchesCount !== undefined ? r.tabSwitchesCount : 0,
       ...exportFields.map(f => {
         const val = r.data[f.id];
         if (typeof val === 'object' && val !== null && val.name) {
@@ -264,7 +266,17 @@ export default function Responses() {
               {filteredResponses.map((response) => (
                 <tr key={response.id} className="group hover:bg-white/[0.02] transition-colors">
                   <td className="py-4 px-4 text-sm text-white/40 whitespace-nowrap">
-                    {new Date(response.submittedAt).toLocaleString()}
+                    <div>{new Date(response.submittedAt).toLocaleString()}</div>
+                    {response.submissionReason && (
+                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        {response.submissionReason.includes('Tab') ? 'Tab Violation' : 'Time Expired'}
+                      </span>
+                    )}
+                    {response.tabSwitchesCount !== undefined && response.tabSwitchesCount > 0 && (
+                      <div className="text-[10px] text-white/40 font-mono mt-0.5">
+                        Switches: {response.tabSwitchesCount}
+                      </div>
+                    )}
                   </td>
                   {form.fields.filter(f => f.type !== 'section').map(field => (
                     <td key={field.id} className="py-4 px-4 text-sm">

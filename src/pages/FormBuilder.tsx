@@ -9,12 +9,14 @@ import {
   Plus, Trash2, GripVertical, Settings2, Save, X, 
   Type, Mail, Phone, ChevronDown, List, CheckSquare, AlignLeft, Upload, 
   ChevronLeft, Layout, Image as ImageIcon, Camera, CircleDot, Palette,
-  Bold, Italic, List as ListIcon, LayoutTemplate, MessageCircle, Link2
+  Bold, Italic, List as ListIcon, LayoutTemplate, MessageCircle, Link2,
+  Maximize2, Clock, ShieldAlert, AlertTriangle, EyeOff
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import RichTextEditor from '../components/RichTextEditor';
 import FirebasePermissionError from '../components/FirebasePermissionError';
+import Logo from '../components/Logo';
 
 const FIELD_ICONS: Record<FieldType, any> = {
   text: <Type size={18} />,
@@ -44,6 +46,10 @@ export default function FormBuilder() {
   const [isOpen, setIsOpen] = useState(true);
   const [limitOneResponse, setLimitOneResponse] = useState(false);
   const [restrictToDomain, setRestrictToDomain] = useState(false);
+  const [enableFullscreen, setEnableFullscreen] = useState(false);
+  const [enableTabSwitchLimit, setEnableTabSwitchLimit] = useState(false);
+  const [maxTabSwitches, setMaxTabSwitches] = useState<number | string>(3);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState<number | string>('');
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -118,6 +124,10 @@ export default function FormBuilder() {
             setIsOpen(data.isOpen !== undefined ? data.isOpen : true);
             setLimitOneResponse(data.limitOneResponse || false);
             setRestrictToDomain(data.restrictToDomain || false);
+            setEnableFullscreen(data.enableFullscreen || false);
+            setEnableTabSwitchLimit(data.enableTabSwitchLimit || false);
+            setMaxTabSwitches(data.maxTabSwitches !== undefined ? data.maxTabSwitches : 3);
+            setTimeLimitMinutes(data.timeLimitMinutes !== undefined && data.timeLimitMinutes > 0 ? data.timeLimitMinutes : '');
             if (data.theme) {
               setTheme(data.theme);
             }
@@ -201,6 +211,9 @@ export default function FormBuilder() {
     setSaveError(null);
     try {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const parsedTimeLimit = timeLimitMinutes ? Math.max(0, parseInt(String(timeLimitMinutes), 10) || 0) : 0;
+      const parsedTabSwitches = maxTabSwitches ? Math.max(1, parseInt(String(maxTabSwitches), 10) || 3) : 3;
+
       const formData = sanitizeForFirestore({
         title,
         description,
@@ -213,6 +226,10 @@ export default function FormBuilder() {
         isOpen,
         limitOneResponse,
         restrictToDomain,
+        enableFullscreen,
+        enableTabSwitchLimit,
+        maxTabSwitches: parsedTabSwitches,
+        timeLimitMinutes: parsedTimeLimit,
         theme,
         updatedAt: Date.now(),
         slug: slug || uuidv4().slice(0, 8),
@@ -326,6 +343,14 @@ export default function FormBuilder() {
               )}
 
               <div className="relative z-10 space-y-6">
+                <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+                  <Logo className="w-8 h-8" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold tracking-[0.2em] text-white">NEURONYX</span>
+                    <span className="text-[9px] text-white/40 tracking-wider uppercase font-mono">Form Preview</span>
+                  </div>
+                </div>
+
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-6">
                     <input
@@ -756,6 +781,115 @@ export default function FormBuilder() {
                       >
                         <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${restrictToDomain ? 'translate-x-7' : 'translate-x-2'}`} />
                       </button>
+                    </div>
+
+                    {/* Fullscreen Mode Setting */}
+                    <div className="flex items-center justify-between p-5 glass rounded-2xl border border-sky-500/20 bg-sky-500/[0.02]">
+                      <div className="space-y-1 pr-4">
+                        <div className="flex items-center gap-2">
+                          <Maximize2 className="text-sky-400" size={16} />
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-sky-400">Direct Fullscreen Mode</label>
+                        </div>
+                        <p className="text-xs text-white/50">
+                          Directly requests and keeps the form in fullscreen mode upon opening.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setEnableFullscreen(!enableFullscreen)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none shrink-0 ${enableFullscreen ? 'bg-sky-500' : 'bg-white/10'}`}
+                      >
+                        <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${enableFullscreen ? 'translate-x-7' : 'translate-x-2'}`} />
+                      </button>
+                    </div>
+
+                    {/* Tab Switch Limit & Auto-Submit Setting */}
+                    <div className="p-5 glass rounded-2xl border border-amber-500/20 bg-amber-500/[0.02] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1 pr-4">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="text-amber-400" size={16} />
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-amber-400">Tab Switch Auto-Submit</label>
+                          </div>
+                          <p className="text-xs text-white/50">
+                            Auto-submits the form if a respondent switches tabs or leaves the window 3 times.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setEnableTabSwitchLimit(!enableTabSwitchLimit)}
+                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none shrink-0 ${enableTabSwitchLimit ? 'bg-amber-500' : 'bg-white/10'}`}
+                        >
+                          <div className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${enableTabSwitchLimit ? 'translate-x-7' : 'translate-x-2'}`} />
+                        </button>
+                      </div>
+
+                      {enableTabSwitchLimit && (
+                        <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-4">
+                          <label className="text-xs text-white/70 font-medium">Allowed Tab Switches Before Auto-Submit:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={maxTabSwitches}
+                            onChange={(e) => setMaxTabSwitches(e.target.value)}
+                            className="w-20 bg-white/[0.05] border border-white/10 rounded-xl px-3 py-1.5 text-center text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Form Timer Setting */}
+                    <div className="p-5 glass rounded-2xl border border-brand-accent/20 bg-brand-accent/[0.02] space-y-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Clock className="text-brand-accent" size={16} />
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-brand-accent">Form Countdown Timer</label>
+                        </div>
+                        <p className="text-xs text-white/50">
+                          Displays a live countdown timer. When time runs out, the form automatically submits answers.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3 pt-1">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="360"
+                            placeholder="Duration in minutes (e.g. 15)"
+                            value={timeLimitMinutes}
+                            onChange={(e) => setTimeLimitMinutes(e.target.value)}
+                            className="flex-1 bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-accent/50"
+                          />
+                          {timeLimitMinutes && (
+                            <button
+                              type="button"
+                              onClick={() => setTimeLimitMinutes('')}
+                              className="px-3 py-2.5 glass rounded-xl text-xs text-white/40 hover:text-white"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] text-white/30 uppercase font-bold">Presets:</span>
+                          {[5, 10, 15, 30, 45, 60].map((mins) => (
+                            <button
+                              key={mins}
+                              type="button"
+                              onClick={() => setTimeLimitMinutes(mins)}
+                              className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
+                                Number(timeLimitMinutes) === mins
+                                  ? 'bg-brand-accent text-brand-bg font-bold shadow-[0_0_10px_rgba(0,210,255,0.4)]'
+                                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                              }`}
+                            >
+                              {mins}m
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
